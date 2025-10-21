@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ProvinceController;
 use App\Livewire\Settings\Appearance;
 use App\Livewire\Settings\Password;
 use App\Livewire\Settings\Profile;
@@ -7,9 +8,85 @@ use App\Livewire\Settings\TwoFactor;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 
-Route::get('/', function () {
-    return view('welcome');
-})->name('home');
+Route::get('/', [ProvinceController::class, 'index'])->name('home');
+Route::get('/3d', function () {
+    $provinces = \App\Models\Province::with('activePestControlServices')
+        ->get()
+        ->mapWithKeys(function ($province) {
+            return [$province->name => [
+                'name' => $province->name,
+                'population' => $province->population,
+                'pestControlServices' => $province->activePestControlServices->map(function ($service) {
+                    return [
+                        'id' => $service->id,
+                        'name' => $service->name,
+                        'address' => $service->address,
+                        'phone' => $service->phone,
+                        'email' => $service->email,
+                        'specialty' => $service->specialty,
+                        'rating' => (float) $service->rating,
+                        'review_count' => $service->review_count,
+                    ];
+                })
+            ]];
+        });
+    return view('welcome-threejs', compact('provinces'));
+})->name('3d-map');
+
+Route::get('/geo', function () {
+    $provinces = \App\Models\Province::with('activePestControlServices')
+        ->get()
+        ->mapWithKeys(function ($province) {
+            return [$province->name => [
+                'name' => $province->name,
+                'population' => $province->population,
+                'pestControlServices' => $province->activePestControlServices->map(function ($service) {
+                    return [
+                        'id' => $service->id,
+                        'name' => $service->name,
+                        'address' => $service->address,
+                        'phone' => $service->phone,
+                        'email' => $service->email,
+                        'specialty' => $service->specialty,
+                        'rating' => (float) $service->rating,
+                        'review_count' => $service->review_count,
+                    ];
+                })
+            ]];
+        });
+    return view('welcome-geographic', compact('provinces'));
+})->name('geo-map');
+
+Route::get('/simple3d', function () {
+    $provinces = \App\Models\Province::with('activePestControlServices')
+        ->get()
+        ->mapWithKeys(function ($province) {
+            return [$province->name => [
+                'name' => $province->name,
+                'population' => $province->population,
+                'pestControlServices' => $province->activePestControlServices->map(function ($service) {
+                    return [
+                        'id' => $service->id,
+                        'name' => $service->name,
+                        'address' => $service->address,
+                        'phone' => $service->phone,
+                        'email' => $service->email,
+                        'specialty' => $service->specialty,
+                        'rating' => (float) $service->rating,
+                        'review_count' => $service->review_count,
+                    ];
+                })
+            ]];
+        });
+    return view('welcome-simple3d', compact('provinces'));
+})->name('simple3d-map');
+
+// API routes for the map
+Route::prefix('api')->group(function () {
+    Route::get('/provinces', [ProvinceController::class, 'getProvincesData']);
+    Route::get('/provinces/{provinceName}/services', [ProvinceController::class, 'getProvinceServices']);
+    Route::get('/search/services', [ProvinceController::class, 'searchServices']);
+});
 
 Route::view('dashboard', 'dashboard')
     ->middleware(['auth', 'verified'])
