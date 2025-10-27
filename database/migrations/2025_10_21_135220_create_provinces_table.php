@@ -13,12 +13,16 @@ return new class extends Migration
     {
         Schema::create('provinces', function (Blueprint $table) {
             $table->id();
-            $table->string('name')->unique();
+            $table->foreignId('country_id')->constrained()->onDelete('cascade');
+            $table->string('name');
             $table->integer('population')->nullable();
             $table->decimal('latitude', 10, 8)->nullable();
             $table->decimal('longitude', 11, 8)->nullable();
             $table->json('geojson_data')->nullable(); // For storing province boundary data if needed
             $table->timestamps();
+
+            $table->unique(['country_id', 'name']); // Unique province name per country
+            $table->index('country_id');
         });
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Country;
 use App\Models\Province;
 use App\Models\Town;
 use Illuminate\Http\Request;
@@ -9,11 +10,22 @@ use Illuminate\Http\Request;
 class ProvinceController extends Controller
 {
     /**
-     * Display the Netherlands province map with pest control services
+     * Display the active country's province map with pest control services
+     * Currently shows Netherlands only, future: IP-based country detection
      */
     public function index()
     {
-        $provinces = Province::with('activePestControlServices')
+        // Get the active country (currently only Netherlands is active)
+        // TODO: In the future, use IP geolocation to automatically determine user's country
+        $activeCountry = Country::where('is_active', true)->first();
+
+        if (!$activeCountry) {
+            abort(404, 'No active country found. Please activate a country first.');
+        }
+
+        // Load ONLY the provinces for this active country
+        $provinces = $activeCountry->provinces()
+            ->with('activePestControlServices')
             ->get()
             ->mapWithKeys(function ($province) {
                 return [$province->name => [
@@ -34,7 +46,7 @@ class ProvinceController extends Controller
                 ]];
             });
 
-        return view('welcome-map', compact('provinces'));
+        return view('welcome-map', compact('provinces', 'activeCountry'));
     }
 
     /**

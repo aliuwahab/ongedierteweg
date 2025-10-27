@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\Country;
 use App\Models\Province;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class ProvinceSeeder extends Seeder
@@ -13,6 +13,13 @@ class ProvinceSeeder extends Seeder
      */
     public function run(): void
     {
+        // Get Netherlands country
+        $netherlands = Country::where('iso_code', 'NL')->first();
+
+        if (!$netherlands) {
+            throw new \Exception('Netherlands country not found. Please run CountrySeeder first.');
+        }
+
         $provinces = [
             ['name' => 'Noord-Holland', 'population' => 2877909, 'latitude' => 52.5, 'longitude' => 4.8],
             ['name' => 'Zuid-Holland', 'population' => 3705625, 'latitude' => 52.0, 'longitude' => 4.6],
@@ -28,8 +35,10 @@ class ProvinceSeeder extends Seeder
             ['name' => 'Flevoland', 'population' => 423021, 'latitude' => 52.5, 'longitude' => 5.5],
         ];
 
-        foreach ($provinces as $province) {
-            Province::create($province);
+        foreach ($provinces as $provinceData) {
+            Province::create(array_merge($provinceData, [
+                'country_id' => $netherlands->id
+            ]));
         }
     }
 }
