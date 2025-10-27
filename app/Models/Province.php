@@ -30,4 +30,9 @@ class Province extends Model
     {
         return $this->pestControlServices()->where('is_active', true);
     }
+
+    public function towns(): HasMany
+    {
+        return $this->hasMany(Town::class);
+    }
 }

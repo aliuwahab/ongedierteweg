@@ -11,6 +11,9 @@ use Laravel\Fortify\Features;
 // Home page - Netherlands Province Map
 Route::get('/', [ProvinceController::class, 'index'])->name('home');
 
+// Town search API
+Route::get('/api/towns/search', [ProvinceController::class, 'searchTowns'])->name('towns.search');
+
 Route::view('dashboard', 'dashboard')
     ->middleware(['auth', 'verified'])
     ->name('dashboard');

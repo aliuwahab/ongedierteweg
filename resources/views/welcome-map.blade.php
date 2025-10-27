@@ -65,6 +65,29 @@
             margin-right: 10px;
             border: 1px solid #ccc;
         }
+
+        #search-results {
+            animation: fadeIn 0.2s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .search-result-item {
+            transition: all 0.2s ease;
+        }
+
+        .search-result-item:hover {
+            background-color: #f3f4f6;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
@@ -118,7 +141,30 @@
         <!-- Sidebar -->
         <div class="lg:col-span-1">
             <div class="bg-white rounded-xl p-6 shadow-lg sticky top-8">
-                <h2 class="text-2xl font-bold text-gray-800 mb-6">Province Details</h2>
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Find Your Town</h2>
+
+                <!-- Town Search -->
+                <div class="mb-6 relative">
+                    <div class="relative">
+                        <input
+                            type="text"
+                            id="town-search"
+                            placeholder="Search for your town..."
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            autocomplete="off"
+                        />
+                        <svg class="absolute right-3 top-3.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </div>
+
+                    <!-- Search Results Dropdown -->
+                    <div id="search-results" class="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg hidden max-h-64 overflow-y-auto">
+                        <!-- Results will be populated here -->
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-semibold text-gray-800 mb-4 border-t border-gray-200 pt-4">Province Details</h3>
 
                 <div id="no-selection" class="text-gray-500 text-center py-8">
                     <div class="w-20 h-20 mx-auto mb-4 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
@@ -160,10 +206,85 @@
         selectedProvince: null,
         svg: null,
         projection: null,
-        path: null
+        path: null,
+        searchTimeout: null
     };
 
     console.log('Province data loaded:', app.provinces);
+
+    // Town search functionality
+    const townSearch = document.getElementById('town-search');
+    const searchResults = document.getElementById('search-results');
+
+    townSearch.addEventListener('input', function(e) {
+        const query = e.target.value.trim();
+
+        clearTimeout(app.searchTimeout);
+
+        if (query.length < 2) {
+            searchResults.classList.add('hidden');
+            searchResults.innerHTML = '';
+            return;
+        }
+
+        app.searchTimeout = setTimeout(() => {
+            fetch(`/api/towns/search?query=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(towns => {
+                    displaySearchResults(towns);
+                })
+                .catch(error => {
+                    console.error('Search error:', error);
+                });
+        }, 300);
+    });
+
+    function displaySearchResults(towns) {
+        if (towns.length === 0) {
+            searchResults.innerHTML = '<div class="p-4 text-gray-500 text-sm text-center">No towns found</div>';
+            searchResults.classList.remove('hidden');
+            return;
+        }
+
+        const html = towns.map(town => `
+            <div class="search-result-item p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0"
+                 data-province="${town.province_name}"
+                 onclick="selectTown('${town.name}', '${town.province_name}')">
+                <div class="font-semibold text-gray-800">${town.name}</div>
+                <div class="text-xs text-gray-500 flex items-center justify-between mt-1">
+                    <span>${town.province_name}</span>
+                    <span>${town.population ? town.population.toLocaleString() + ' residents' : ''}</span>
+                </div>
+            </div>
+        `).join('');
+
+        searchResults.innerHTML = html;
+        searchResults.classList.remove('hidden');
+    }
+
+    function selectTown(townName, provinceName) {
+        // Update search input
+        townSearch.value = townName;
+
+        // Hide search results
+        searchResults.classList.add('hidden');
+
+        // Find and select the province on the map
+        const provinceElement = document.querySelector(`.province[data-province="${provinceName}"]`);
+        if (provinceElement) {
+            selectProvince(provinceName, provinceElement);
+
+            // Optionally scroll the map into view if needed
+            provinceElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+
+    // Close search results when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!townSearch.contains(e.target) && !searchResults.contains(e.target)) {
+            searchResults.classList.add('hidden');
+        }
+    });
 
     // Province name mappings (handles different naming conventions in GeoJSON)
     const provinceNameMap = {

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Province;
+use App\Models\Town;
+use Illuminate\Http\Request;
 
 class ProvinceController extends Controller
 {
@@ -33,6 +35,34 @@ class ProvinceController extends Controller
             });
 
         return view('welcome-map', compact('provinces'));
+    }
+
+    /**
+     * Search for towns/cities and return with province info
+     */
+    public function searchTowns(Request $request)
+    {
+        $query = $request->input('query', '');
+
+        if (strlen($query) < 2) {
+            return response()->json([]);
+        }
+
+        $towns = Town::with('province')
+            ->where('name', 'like', $query . '%')
+            ->orderBy('population', 'desc')
+            ->limit(10)
+            ->get()
+            ->map(function ($town) {
+                return [
+                    'id' => $town->id,
+                    'name' => $town->name,
+                    'population' => $town->population,
+                    'province_name' => $town->province->name,
+                ];
+            });
+
+        return response()->json($towns);
     }
 
 }
